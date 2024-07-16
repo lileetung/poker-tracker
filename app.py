@@ -1,19 +1,11 @@
 import streamlit as st
-from dotenv import load_dotenv
 import os
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get user credentials from environment variables
-USER_CREDENTIALS = os.getenv("USER_CREDENTIALS")
-if USER_CREDENTIALS:
-    user_credentials_dict = dict(cred.split(":") for cred in USER_CREDENTIALS.split(","))
-else:
-    user_credentials_dict = {}
+# 獲取用戶憑據
+user_credentials_dict = st.secrets["credentials"]
 
 # Create input boxes in the sidebar
 st.sidebar.title('Login')
