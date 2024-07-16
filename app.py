@@ -40,7 +40,7 @@ if st.session_state.logged_in:
     # Title
     st.title(f'Poker Profit/Loss Record')
     # Data
-    file_path = os.path.join('data', f'{username}_poker_records.csv')
+    file_path = f'{username}_poker_records.csv'
     try:
         df = pd.read_csv(file_path)
         df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
