@@ -1,8 +1,29 @@
 import streamlit as st
-import os
+import uuid
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import os
+import time
+import re
+
+def cleanup_old_files():
+    current_time = int(time.time())
+    cleanup_threshold = current_time - (1 * 60 * 60)  # 1 小時前
+
+    file_pattern = re.compile(r'user_(\d+)_.*_poker_records\.csv')
+
+    for filename in os.listdir('.'):
+        match = file_pattern.match(filename)
+        if match:
+            file_timestamp = int(match.group(1))
+            if file_timestamp < cleanup_threshold:
+                file_path = os.path.join('.', filename)
+                os.remove(file_path)
+                print(f"Deleted old file: {filename}")
+
+# 在應用啟動時執行清理 user 體驗用的帳號
+cleanup_old_files()
 
 # credentials
 user_credentials_dict = st.secrets["credentials"]
@@ -23,9 +44,24 @@ if not st.session_state.logged_in:
         # Create a button to verify user credentials
         if st.sidebar.button('Login'):
             if username in user_credentials_dict and user_credentials_dict[username] == password:
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.rerun()
+                if username == 'user': # 體驗用帳號
+                    st.session_state.logged_in = True
+                    current_timestamp = int(time.time())
+                    username = f'user_{current_timestamp}_{str(uuid.uuid4())[:8]}'
+                    st.session_state.username = username
+                    file_path = f'{username}_poker_records.csv'
+                    df = pd.DataFrame({
+                        'Date': ['2024/07/23', '2024/07/22', '2024/07/20', '2024/07/19', '2024/07/7'],
+                        'Tournament Name': ['永和巨籌', '台北日常', '永和深籌', '林口MEGA', '台北超日'],
+                        'Entry Fee': [1500, 1500, 1500, 1500, 2000],
+                        'Profit/Loss': [4500, -1500, 2600, -1500, 8000]
+                    })
+                    df.to_csv(file_path, index=False, encoding="utf_8_sig")
+                    st.rerun()
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    st.rerun()
             else:
                 st.error('Invalid username or password')
         st.divider()
@@ -38,8 +74,14 @@ else:
         st.header(f'Hi, {st.session_state.username}')
         
         if st.sidebar.button('Logout'):
+            if st.session_state.get('is_test_user', False):
+                file_path = f'{st.session_state.username}_poker_records.csv'
+                import os
+                if os.path.exists(file_path):
+                    os.remove(file_path)
             st.session_state.logged_in = False
             st.session_state.username = None
+            st.session_state.is_test_user = False  # 重置測試用戶標記
             st.rerun()
         
         st.divider()
@@ -66,7 +108,7 @@ else:
                 df_new['Date'] = pd.to_datetime(df_new['Date']).dt.strftime('%Y-%m-%d')
                 
                 # 直接将上传的文件保存为用户的记录文件
-                df_new.to_csv(file_path, index=False)
+                df_new.to_csv(file_path, index=False, encoding="utf_8_sig")
                 st.success(f"CSV file uploaded and saved as {file_path}")
                 
                 # 重置上传状态
@@ -178,7 +220,7 @@ if st.session_state.logged_in:
                 df['Date'] = pd.to_datetime(df['Date'])
                 df = df.sort_values(by='Date', ascending=False)  # Sort by date descending
                 df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-                df.to_csv(file_path, index=False)
+                df.to_csv(file_path, index=False, encoding="utf_8_sig")
                 st.rerun()
 
     with st.expander("History of Profit/Loss Records"):
@@ -215,7 +257,7 @@ if st.session_state.logged_in:
                     df['Date'] = pd.to_datetime(df['Date'])
                     df = df.sort_values(by='Date', ascending=False)  # Sort by date descending
                     df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-                    df.to_csv(file_path, index=False)
+                    df.to_csv(file_path, index=False, encoding="utf_8_sig")
                     st.rerun()
 
     # Plot profit/loss trend
