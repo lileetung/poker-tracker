@@ -16,8 +16,8 @@ if 'file_uploader_key' not in st.session_state:
 if not st.session_state.logged_in:
     # Create input boxes in the sidebar
     st.sidebar.title('Login')
-    username = st.sidebar.text_input('Username')
-    password = st.sidebar.text_input('Password', type='password')
+    username = st.sidebar.text_input('Username', placeholder="user")
+    password = st.sidebar.text_input('Password', type='password', placeholder="0000")
 
     with st.sidebar:
         # Create a button to verify user credentials
@@ -45,19 +45,19 @@ else:
         st.divider()
 
         # 新增 CSV 上傳功能
-        st.subheader("Upload CSV for Quick Usage")
+        st.subheader("Upload CSV")
         # Data
         username = st.session_state["username"]
         file_path = f'{username}_poker_records.csv'
         # 提供 CSV 格式說明
         st.info("""
+        You may download the template CSV for quick usage.
+                
         CSV file should contain the following columns:
         - Date
         - Tournament Name
         - Entry Fee
         - Profit/Loss
-                
-        You may download the template CSV.
         """)
         uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=st.session_state.file_uploader_key)
         if uploaded_file is not None:
@@ -225,15 +225,21 @@ if st.session_state.logged_in:
 
         # 计算累计利润/损失
         df['Cumulative Profit/Loss'] = df['Profit/Loss'].cumsum()
+        # 计算y轴的上下限
+        y_min = df['Cumulative Profit/Loss'].min()
+        y_max = df['Cumulative Profit/Loss'].max()
+        y_range = y_max - y_min
+        y_lower = y_min - 0.1 * y_range
+        y_upper = y_max + 0.1 * y_range
 
-        fig = px.line(df, x='Date', y='Cumulative Profit/Loss', title='Profit/Loss Trend', markers=True, 
+        fig = px.line(df, x='Date', y='Cumulative Profit/Loss', markers=True, 
                     hover_data={'Date', 'Tournament Name', 'Profit/Loss', 'Entry Fee'})
         fig.update_traces(line_color='green', marker=dict(color='green'))
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Cumulative Profit/Loss',
             title={
-                'text': 'Cumulative Profit/Loss Trend',
+                'text': 'Cumulative Profit/Loss',
                 'y': 0.9,
                 'x': 0.5,
                 'xanchor': 'center',
@@ -243,10 +249,50 @@ if st.session_state.logged_in:
                 tickformat='%Y-%m-%d',
             ),
             yaxis=dict(
-                tickformat='$,.0f'
+            tickformat='$,.0f',
+            range=[y_lower, y_upper]
             ),
         )
         st.plotly_chart(fig)
 else:
-    st.title(f'Poker Tournament Record')
-    st.write('Please log in to view the content')
+    st.title(f'Poker Tournament Record APP')
+    page_content = """以下步驟將幫助您快速上手並使用這個 Poker Tournament Record APP。祝您使用愉快！
+
+### 登入
+1. **啟動應用程式後，在左側側邊欄中找到登入界面**。
+2. **輸入您的用戶名和密碼**，歡迎使用體驗帳號與密碼，Account: user、Password: 0000。
+3. **點擊「Login」按鈕**以驗證您的身份。
+4. 若登入失敗，請檢查您的用戶名和密碼是否正確。
+
+### 上傳 CSV 文件
+1. **登入成功後，在左側側邊欄找到「Upload CSV」區域**。
+2. **點擊「Choose a CSV file」按鈕選擇您的 CSV 文件**。
+3. 確保您的 CSV 文件包含以下欄位：
+   - Date
+   - Tournament Name
+   - Entry Fee
+   - Profit/Loss
+4. **上傳的文件將自動保存為您的記錄文件**。
+5. 可以下載 CSV 模板再上傳，以方便快速使用
+
+### 下載 CSV 模板
+1. **在「Download Template」區域點擊「Download CSV template」按鈕**。
+2. **模板文件將包含示例數據，您可以根據需要進行修改**。
+
+### 添加新記錄
+1. **點擊「Add New Record」區域以展開表單**。
+2. **輸入比賽日期、比賽名稱、參賽費用以及利潤/損失金額**。
+3. **點擊「Add Record」按鈕以提交新記錄**。
+
+### 查看與修改歷史記錄
+1. **點擊「History of Profit/Loss Records」區域以展開歷史記錄**。
+2. **瀏覽過去的比賽記錄**。
+3. **若需刪除某條記錄，點擊記錄右側的「x」按鈕**。
+
+### 登出
+1. **在左側側邊欄點擊「Logout」按鈕以登出系統**。
+
+### 支援
+- 若有任何問題或需要幫助，請聯繫我們。
+"""
+    st.write(page_content)
