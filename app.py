@@ -10,6 +10,8 @@ user_credentials_dict = st.secrets["credentials"]
 # Check if the user is logged in
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
+if 'file_uploader_key' not in st.session_state:
+    st.session_state.file_uploader_key = 0
 
 if not st.session_state.logged_in:
     # Create input boxes in the sidebar
@@ -35,17 +37,78 @@ else:
     with st.sidebar:
         st.header(f'Hi, {st.session_state.username}')
         
-    # st.sidebar.write(f'Logged in as: {st.session_state.username}')
         if st.sidebar.button('Logout'):
             st.session_state.logged_in = False
             st.session_state.username = None
             st.rerun()
+        
+        st.divider()
+
+        # 新增 CSV 上傳功能
+        st.subheader("Upload CSV for Quick Usage")
+        # Data
+        username = st.session_state["username"]
+        file_path = f'{username}_poker_records.csv'
+        # 提供 CSV 格式說明
+        st.info("""
+        CSV file should contain the following columns:
+        - Date
+        - Tournament Name
+        - Entry Fee
+        - Profit/Loss
+                
+        You may download the template CSV.
+        """)
+        uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=st.session_state.file_uploader_key)
+        if uploaded_file is not None:
+            df_new = pd.read_csv(uploaded_file)
+            if set(df_new.columns) == set(['Date', 'Tournament Name', 'Entry Fee', 'Profit/Loss']):
+                df_new['Date'] = pd.to_datetime(df_new['Date']).dt.strftime('%Y-%m-%d')
+                
+                # 直接将上传的文件保存为用户的记录文件
+                df_new.to_csv(file_path, index=False)
+                st.success(f"CSV file uploaded and saved as {file_path}")
+                
+                # 重置上传状态
+                st.session_state.file_uploader_key += 1
+                st.rerun()
+            else:
+                st.error("The CSV file does not have the correct columns. Please check the format.")
+        
+        st.divider()
+        # 添加下载模板按钮
+        st.subheader("Download Template")
+        
+        # 创建模板数据
+        template_data = pd.DataFrame({
+            'Date': ['2024/07/23', '2024/07/22', '2024/07/20', '2024/07/19', '2024/07/7'],
+            'Tournament Name': ['永和巨籌', '台北日常', '永和深籌', '林口MEGA', '台北超日'],
+            'Entry Fee': [1500, 1500, 1500, 1500, 2000],
+            'Profit/Loss': [4500, -1500, 2600, -1500, 8000]
+        })
+        
+        @st.cache_data
+        def convert_df(df):
+            # IMPORTANT: Cache the conversion to prevent computation on every rerun
+            return df.to_csv(index=False).encode("utf_8_sig")
+        
+        # 将数据转换为 CSV 字符串
+        csv = convert_df(template_data)
+        
+        # 创建下载按钮
+        st.download_button(
+            label="Download CSV template",
+            data=csv,
+            file_name="poker_records_template.csv",
+            mime="text/csv"
+        )
+        
         st.divider()
         st.markdown(
-            '<h6>Made in &nbsp<img src="https://streamlit.io/images/brand/streamlit-mark-color.png" alt="Streamlit logo" height="16">&nbsp by <a href="https://www.instagram.com/raviiiiiiiiiii/">@leetung</a></h6>',
+            '<h5>Made by <a href="https://www.instagram.com/raviiiiiiiiiii/">lileetung</a></h5>',
             unsafe_allow_html=True,
         )
-    
+
 
 # Display main content
 if st.session_state.logged_in:
@@ -63,8 +126,8 @@ if st.session_state.logged_in:
         df = pd.DataFrame({
             'Date': pd.Series(dtype='str'),
             'Tournament Name': pd.Series(dtype='str'),
-            'Entry Fee': pd.Series(dtype='float'),
-            'Profit/Loss': pd.Series(dtype='float')
+            'Entry Fee': pd.Series(dtype='int'),
+            'Profit/Loss': pd.Series(dtype='int')
         })
 
     # Display total profit/loss
@@ -82,12 +145,14 @@ if st.session_state.logged_in:
         itm_rate = (in_the_money / total_tournaments) * 100 if total_tournaments != 0 else 0
 
         # 使用 columns 來顯示多個指標
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total Profit/Loss", f"${total_profit:,.0f}")
+            st.metric("Total Profit/Loss", f"${total_profit}")
         with col2:
             st.metric("ROI", f"{roi:.2f}%")
         with col3:
+            st.metric("ITM", f"{in_the_money} / {total_tournaments}")
+        with col4:
             st.metric("ITM Rate", f"{itm_rate:.2f}%")
 
     with st.expander("Add New Record"):
@@ -155,13 +220,20 @@ if st.session_state.logged_in:
 
     # Plot profit/loss trend
     if not df.empty:
-        df['Date'] = pd.to_datetime(df['Date'])  # Ensure the date format is correct
-        fig = px.line(df, x='Date', y='Profit/Loss', title='Profit/Loss Trend', markers=True)
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df.sort_values(by='Date', ascending=True)  # Sort by date ascending
+
+        # 计算累计利润/损失
+        df['Cumulative Profit/Loss'] = df['Profit/Loss'].cumsum()
+
+        fig = px.line(df, x='Date', y='Cumulative Profit/Loss', title='Profit/Loss Trend', markers=True, 
+                    hover_data={'Date', 'Tournament Name', 'Profit/Loss', 'Entry Fee'})
+        fig.update_traces(line_color='green', marker=dict(color='green'))
         fig.update_layout(
             xaxis_title='Date',
-            yaxis_title='Profit/Loss',
+            yaxis_title='Cumulative Profit/Loss',
             title={
-                'text': 'Profit/Loss Trend',
+                'text': 'Cumulative Profit/Loss Trend',
                 'y': 0.9,
                 'x': 0.5,
                 'xanchor': 'center',
@@ -171,8 +243,8 @@ if st.session_state.logged_in:
                 tickformat='%Y-%m-%d',
             ),
             yaxis=dict(
-                tickformat=','
-            )
+                tickformat='$,.0f'
+            ),
         )
         st.plotly_chart(fig)
 else:
