@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import time
 import re
+import io
 
 def cleanup_old_files():
     current_time = int(time.time())
@@ -20,7 +21,7 @@ def cleanup_old_files():
             if file_timestamp < cleanup_threshold:
                 file_path = os.path.join('.', filename)
                 os.remove(file_path)
-                print(f"Deleted old file: {filename}")
+                print(f"已刪除舊檔案: {filename}")
 
 # 在應用啟動時執行清理 user 體驗用的帳號
 cleanup_old_files()
@@ -51,10 +52,18 @@ if not st.session_state.logged_in:
                     st.session_state.username = username
                     file_path = f'{username}_poker_records.csv'
                     df = pd.DataFrame({
-                        'Date': ['2024/07/23', '2024/07/22', '2024/07/20', '2024/07/19', '2024/07/7'],
-                        'Tournament Name': ['永和巨籌', '台北日常', '永和深籌', '林口MEGA', '台北超日'],
-                        'Entry Fee': [1500, 1500, 1500, 1500, 2000],
-                        'Profit/Loss': [4500, -1500, 2600, -1500, 8000]
+                        'Date': ['2024/07/23', '2024/07/22', '2024/07/20', '2024/07/19', '2024/07/17', 
+                                '2024/07/15', '2024/07/13', '2024/07/11', '2024/07/09', '2024/07/07', 
+                                '2024/07/05', '2024/07/03', '2024/07/01'],
+                        'Tournament Name': ['永和巨籌', '台北日常', '永和深籌', '林口MEGA', '新莊週末賽',
+                                            '板橋午間賽', '中和夜間賽', '台北快速賽', '桃園大型賽', '台北超日',
+                                            '新店精英賽', '三重周中賽', '台北月初賽'],
+                        'Entry Fee': [1500, 1500, 1500, 1500, 1800, 
+                                    1200, 1000, 800, 2000, 2000, 
+                                    1600, 1300, 1700],
+                        'Cash Out': [4500, 0, 2600, 0, 5500, 
+                                    3200, 0, 1600, 7000, 8000, 
+                                    0, 3800, 4200]
                     })
                     df.to_csv(file_path, index=False, encoding="utf_8_sig")
                     st.rerun()
@@ -83,50 +92,22 @@ else:
             st.session_state.username = None
             st.session_state.is_test_user = False  # 重置測試用戶標記
             st.rerun()
-        
-        st.divider()
 
-        # 新增 CSV 上傳功能
-        st.subheader("Upload CSV")
-        # Data
-        username = st.session_state["username"]
-        file_path = f'{username}_poker_records.csv'
-        # 提供 CSV 格式說明
-        st.info("""
-        You may download the template CSV for quick usage.
-                
-        CSV file should contain the following columns:
-        - Date
-        - Tournament Name
-        - Entry Fee
-        - Profit/Loss
-        """)
-        uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=st.session_state.file_uploader_key)
-        if uploaded_file is not None:
-            df_new = pd.read_csv(uploaded_file)
-            if set(df_new.columns) == set(['Date', 'Tournament Name', 'Entry Fee', 'Profit/Loss']):
-                df_new['Date'] = pd.to_datetime(df_new['Date']).dt.strftime('%Y-%m-%d')
-                
-                # 直接将上传的文件保存为用户的记录文件
-                df_new.to_csv(file_path, index=False, encoding="utf_8_sig")
-                st.success(f"CSV file uploaded and saved as {file_path}")
-                
-                # 重置上传状态
-                st.session_state.file_uploader_key += 1
-                st.rerun()
-            else:
-                st.error("The CSV file does not have the correct columns. Please check the format.")
-        
         st.divider()
-        # 添加下载模板按钮
-        st.subheader("Download Template")
-        
-        # 创建模板数据
+        # 添加下载模板按钮        
         template_data = pd.DataFrame({
-            'Date': ['2024/07/23', '2024/07/22', '2024/07/20', '2024/07/19', '2024/07/7'],
-            'Tournament Name': ['永和巨籌', '台北日常', '永和深籌', '林口MEGA', '台北超日'],
-            'Entry Fee': [1500, 1500, 1500, 1500, 2000],
-            'Profit/Loss': [4500, -1500, 2600, -1500, 8000]
+            'Date': ['2024/07/23', '2024/07/22', '2024/07/20', '2024/07/19', '2024/07/17', 
+                    '2024/07/15', '2024/07/13', '2024/07/11', '2024/07/09', '2024/07/07', 
+                    '2024/07/05', '2024/07/03', '2024/07/01'],
+            'Tournament Name': ['永和巨籌', '台北日常', '永和深籌', '林口MEGA', '新莊週末賽',
+                                '板橋午間賽', '中和夜間賽', '台北快速賽', '桃園大型賽', '台北超日',
+                                '新店精英賽', '三重周中賽', '台北月初賽'],
+            'Entry Fee': [1500, 1500, 1500, 1500, 1800, 
+                        1200, 1000, 800, 2000, 2000, 
+                        1600, 1300, 1700],
+            'Cash Out': [4500, 0, 2600, 0, 5500, 
+                        3200, 0, 1600, 7000, 8000, 
+                        0, 3800, 4200]
         })
         
         @st.cache_data
@@ -139,12 +120,46 @@ else:
         
         # 创建下载按钮
         st.download_button(
-            label="Download CSV template",
+            label="下載 CSV 模板",
             data=csv,
             file_name="poker_records_template.csv",
             mime="text/csv"
         )
         
+        st.divider()
+
+        # 新增 CSV 上傳功能
+        # Data
+        username = st.session_state["username"]
+        file_path = f'{username}_poker_records.csv'
+
+        # 提供 CSV 格式說明
+        st.info("""                
+        CSV 檔案應包含以下欄位：
+        - Date (日期)
+        - Tournament Name (錦標賽名稱)
+        - Entry Fee (報名費)
+        - Cash Out (盈虧)
+        """)
+        
+        uploaded_file = st.file_uploader("上傳 CSV 資料", type="csv", key=st.session_state.file_uploader_key)
+        
+        if uploaded_file is not None:
+            df_new = pd.read_csv(uploaded_file)
+            if set(df_new.columns) == set(['Date', 'Tournament Name', 'Entry Fee', 'Cash Out']):
+                df_new['Date'] = pd.to_datetime(df_new['Date']).dt.strftime('%Y-%m-%d')
+                
+                # 直接将上传的文件保存为用户的记录文件
+                df_new.to_csv(file_path, index=False, encoding="utf_8_sig")
+                st.success(f"CSV 檔案已上傳並保存為 {file_path}")
+                
+                # 重置上传状态
+                st.session_state.file_uploader_key += 1
+                st.rerun()
+            else:
+                st.error("CSV 檔案欄位不正確。請檢查格式。")
+        
+
         st.divider()
         st.markdown(
             '<h5>Made by <a href="https://www.instagram.com/raviiiiiiiiiii/">lileetung</a></h5>',
@@ -169,27 +184,28 @@ if st.session_state.logged_in:
             'Date': pd.Series(dtype='str'),
             'Tournament Name': pd.Series(dtype='str'),
             'Entry Fee': pd.Series(dtype='int'),
-            'Profit/Loss': pd.Series(dtype='int')
+            'Cash Out': pd.Series(dtype='int')
         })
 
-    # Display total profit/loss
+    # Display total Cash Out
     if not df.empty:
         # 計算總利潤/損失
-        total_profit = df['Profit/Loss'].sum()
+        df['Profit'] = df['Cash Out'] - df['Entry Fee']
+        total_profit = df['Profit'].sum()
         
         # 計算 ROI
         total_entry_fees = df['Entry Fee'].sum()
         roi = (total_profit / total_entry_fees) * 100 if total_entry_fees != 0 else 0
         
-        # 計算錢圈率（假設 Profit/Loss > 0 表示進入錢圈）
-        in_the_money = (df['Profit/Loss'] > 0).sum()
+        # 計算錢圈率（假設 Cash Out > 0 表示進入錢圈）
+        in_the_money = (df['Cash Out'] > 0).sum()
         total_tournaments = len(df)
         itm_rate = (in_the_money / total_tournaments) * 100 if total_tournaments != 0 else 0
 
         # 使用 columns 來顯示多個指標
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total Profit/Loss", f"${total_profit}")
+            st.metric("Total Profit", f"${total_profit}")
         with col2:
             st.metric("ROI", f"{roi:.2f}%")
         with col3:
@@ -197,20 +213,20 @@ if st.session_state.logged_in:
         with col4:
             st.metric("ITM Rate", f"{itm_rate:.2f}%")
 
-    with st.expander("Add New Record"):
+    with st.expander("Add New Record", icon="🖌️"):
         # Form to add new record
         with st.form("New Record"):
             date = st.date_input("Date", datetime.now())
             tournament_name = st.text_input("Tournament Name", "")
             entry_fee = st.number_input("Entry Fee", min_value=0, step=100)
-            amount = st.number_input("Profit/Loss Amount", step=100)
+            amount = st.number_input("Cash Out", step=100)
             submitted = st.form_submit_button("Add Record")
             if submitted:
                 new_record = pd.DataFrame({
                     'Date': [date.strftime('%Y-%m-%d')],
                     'Tournament Name': [tournament_name],
                     'Entry Fee': [entry_fee],
-                    'Profit/Loss': [amount]
+                    'Cash Out': [amount]
                 })
                 # 確保新記錄的數據類型與現有 DataFrame 匹配
                 for column in df.columns:
@@ -223,9 +239,42 @@ if st.session_state.logged_in:
                 df.to_csv(file_path, index=False, encoding="utf_8_sig")
                 st.rerun()
 
-    with st.expander("History of Profit/Loss Records"):
+    with st.expander("History Records", icon="📆"):
         # Display history of records
-        st.subheader("History of Profit/Loss Records")
+        st.subheader("History Records")
+        @st.cache_data
+        def convert_df_output(df):
+            # IMPORTANT: Cache the conversion to prevent computation on every rerun
+            return df.to_csv(index=False).encode("utf_8_sig")
+        
+        template_data = pd.read_csv(file_path, encoding="utf_8_sig")
+        # 将数据转换为 CSV 字符串
+        csv = convert_df_output(template_data)
+        
+        # 创建下载按钮
+        st.download_button(
+            label="匯出資料",
+            data=csv,
+            file_name="poker_records.csv",
+            mime="text/csv"
+        )
+
+        # 添加篩選和排序選項
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            start_date = pd.to_datetime(st.date_input("Start Date", min(pd.to_datetime(df['Date'])))).date()
+        with col2:
+            end_date = pd.to_datetime(st.date_input("End Date", max(pd.to_datetime(df['Date'])))).date()
+        with col3:
+            sort_by = st.selectbox("Sort by", ["Date", "Tournament Name", "Entry Fee", "Cash Out"])
+            
+
+
+
+        # 應用篩選和排序
+        df['Date'] = pd.to_datetime(df['Date']).dt.date  # 將 'Date' 列轉換為 date 類型
+        mask = (df['Date'] >= start_date) & (df['Date'] <= end_date)
+        filtered_df = df.loc[mask].sort_values(by=sort_by, ascending=False)
 
         # Add column names
         col1, col2, col3, col4, col5 = st.columns([3, 3, 2, 2, 1])
@@ -236,12 +285,12 @@ if st.session_state.logged_in:
         with col3:
             st.write("Entry Fee")
         with col4:
-            st.write("Profit/Loss")
+            st.write("Cash Out")
         with col5:
             st.write("Action")
 
         # Handle delete action
-        for idx, row in df.iterrows():
+        for idx, row in filtered_df.iterrows():
             col1, col2, col3, col4, col5 = st.columns([3, 3, 2, 2, 1])
             with col1:
                 st.write(f"{row['Date']}")
@@ -250,7 +299,7 @@ if st.session_state.logged_in:
             with col3:
                 st.write(f"${row['Entry Fee']}")
             with col4:
-                st.write(f"${row['Profit/Loss']}")
+                st.write(f"${row['Cash Out']}")
             with col5:
                 if st.button("x", key=f"delete_{idx}"):
                     df = df.drop(idx).reset_index(drop=True)
@@ -260,28 +309,28 @@ if st.session_state.logged_in:
                     df.to_csv(file_path, index=False, encoding="utf_8_sig")
                     st.rerun()
 
-    # Plot profit/loss trend
-    if not df.empty:
-        df['Date'] = pd.to_datetime(df['Date'])
-        df = df.sort_values(by='Date', ascending=True)  # Sort by date ascending
+    # Plot Cash Out trend
+    if not filtered_df.empty:
+        filtered_df['Date'] = pd.to_datetime(filtered_df['Date'])
+        filtered_df = filtered_df.sort_values(by='Date', ascending=True)  # Sort by date ascending
 
         # 计算累计利润/损失
-        df['Cumulative Profit/Loss'] = df['Profit/Loss'].cumsum()
+        filtered_df['Cumulative Cash Out'] = filtered_df['Cash Out'].cumsum()
         # 计算y轴的上下限
-        y_min = df['Cumulative Profit/Loss'].min()
-        y_max = df['Cumulative Profit/Loss'].max()
+        y_min = filtered_df['Cumulative Cash Out'].min()
+        y_max = filtered_df['Cumulative Cash Out'].max()
         y_range = y_max - y_min
         y_lower = y_min - 0.1 * y_range
         y_upper = y_max + 0.1 * y_range
 
-        fig = px.line(df, x='Date', y='Cumulative Profit/Loss', markers=True, 
-                    hover_data={'Date', 'Tournament Name', 'Profit/Loss', 'Entry Fee'})
+        fig = px.line(filtered_df, x='Date', y='Cumulative Cash Out', markers=True, 
+                    hover_data={'Date', 'Tournament Name', 'Cash Out', 'Entry Fee'})
         fig.update_traces(line_color='green', marker=dict(color='green'))
         fig.update_layout(
             xaxis_title='Date',
-            yaxis_title='Cumulative Profit/Loss',
+            yaxis_title='Cumulative Profit',
             title={
-                'text': 'Cumulative Profit/Loss',
+                'text': 'Cumulative Profit',
                 'y': 0.9,
                 'x': 0.5,
                 'xanchor': 'center',
@@ -296,6 +345,8 @@ if st.session_state.logged_in:
             ),
         )
         st.plotly_chart(fig)
+
+        
 else:
     st.title(f'Poker Tournament Record APP')
     st.error("⚠️ 注意：系統目前處於測試階段\n\n在此階段，數據可能不會被永久保存，且系統可能隨時進行更新或維護。請謹慎使用，並定期備份重要數據，將 csv 檔案儲存於您的電腦中。")
