@@ -298,43 +298,36 @@ if st.session_state.logged_in:
         st.plotly_chart(fig)
 else:
     st.title(f'Poker Tournament Record APP')
-    page_content = """以下步驟將幫助您快速上手並使用這個 Poker Tournament Record APP。祝您使用愉快！
+    st.error("⚠️ 注意：系統目前處於測試階段\n\n在此階段，數據可能不會被永久保存，且系統可能隨時進行更新或維護。請謹慎使用，並定期備份重要數據，將 csv 檔案儲存於您的電腦中。")
+    st.markdown("""以下說明將幫助您快速上手並使用這個 Poker Tournament Record APP。祝您使用愉快！
 
 ### 登入
-1. **啟動應用程式後，在左側側邊欄中找到登入界面**。
-2. **輸入您的用戶名和密碼**，歡迎使用體驗帳號與密碼，Account: user、Password: 0000。
-3. **點擊「Login」按鈕**以驗證您的身份。
-4. 若登入失敗，請檢查您的用戶名和密碼是否正確。
+1. 在側邊欄的登入區域輸入您的用戶名和密碼。
+2. 點擊 "Login" 按鈕以登入系統。
+3. 如果您是新用戶，可以使用體驗帳號：
+    - 帳號：user
+    - 密碼：0000
+4. 如需創建自己的帳號，請洽詢 <a href="https://www.instagram.com/raviiiiiiiiiii/">@leetung</a>
 
-### 上傳 CSV 文件
-1. **登入成功後，在左側側邊欄找到「Upload CSV」區域**。
-2. **點擊「Choose a CSV file」按鈕選擇您的 CSV 文件**。
-3. 確保您的 CSV 文件包含以下欄位：
-   - Date
-   - Tournament Name
-   - Entry Fee
-   - Profit/Loss
-4. **上傳的文件將自動保存為您的記錄文件**。
-5. 可以下載 CSV 模板再上傳，以方便快速使用
+### 快速上手步驟
+1. **登入系統**
 
-### 下載 CSV 模板
-1. **在「Download Template」區域點擊「Download CSV template」按鈕**。
-2. **模板文件將包含示例數據，您可以根據需要進行修改**。
+2. **下載 CSV 模板**
+   - 在側邊欄找到 "Download Template" 部分
+   - 點擊 "Download CSV template" 按鈕下載模板
 
-### 添加新記錄
-1. **點擊「Add New Record」區域以展開表單**。
-2. **輸入比賽日期、比賽名稱、參賽費用以及利潤/損失金額**。
-3. **點擊「Add Record」按鈕以提交新記錄**。
+3. **填寫您的比賽記錄**
+   - 打開下載的 CSV 模板
+   - 按照模板格式填寫您的比賽記錄
+   - 保存文件
 
-### 查看與修改歷史記錄
-1. **點擊「History of Profit/Loss Records」區域以展開歷史記錄**。
-2. **瀏覽過去的比賽記錄**。
-3. **若需刪除某條記錄，點擊記錄右側的「x」按鈕**。
-
-### 登出
-1. **在左側側邊欄點擊「Logout」按鈕以登出系統**。
-
-### 支援
-- 若有任何問題或需要幫助，請聯繫我們。
-"""
-    st.write(page_content)
+4. **上傳您的記錄**
+   - 在側邊欄找到 "Upload CSV" 部分
+   - 點擊 "Choose a CSV file" 按鈕
+   - 選擇您填寫好的 CSV 文件
+                
+5. **查看您的記錄和統計**
+   - 上傳成功後，頁面會自動刷新
+   - 您可以在主頁面查看您的比賽記錄和統計數據
+""",
+unsafe_allow_html=True,)
