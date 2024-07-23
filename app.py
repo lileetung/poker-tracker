@@ -218,8 +218,8 @@ if st.session_state.logged_in:
         with st.form("New Record"):
             date = st.date_input("Date", datetime.now())
             tournament_name = st.text_input("Tournament Name", "")
-            entry_fee = st.number_input("Entry Fee", min_value=0, step=100)
-            amount = st.number_input("Cash Out", step=100)
+            entry_fee = st.number_input("Entry Fee", min_value=0, step=1000)
+            amount = st.number_input("Cash Out", min_value=0)
             submitted = st.form_submit_button("Add Record")
             if submitted:
                 new_record = pd.DataFrame({
